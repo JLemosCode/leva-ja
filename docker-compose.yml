@@ -1,0 +1,70 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: levaja
+      MYSQL_USER: levaja
+      MYSQL_PASSWORD: levaja
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - levaja_mysql:/var/lib/mysql
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    environment:
+      APP_ENV: local
+      APP_ORIGIN: http://localhost:5173
+      DB_HOST: db
+      DB_NAME: levaja
+      DB_USER: levaja
+      DB_PASS: levaja
+      JWT_SECRET: local-dev-change-me-use-bin2hex-random-bytes-32
+      ASAAS_BASE_URL: https://api-sandbox.asaas.com/v3
+      ASAAS_API_KEY: ${ASAAS_API_KEY:-}
+      ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN:-}
+      NOMINATIM_URL: https://nominatim.openstreetmap.org
+      NOMINATIM_UA: LevaJa/1.0 (dev@localhost)
+    volumes:
+      - ./backend:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+
+  tick:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      DB_HOST: db
+      DB_NAME: levaja
+      DB_USER: levaja
+      DB_PASS: levaja
+      JWT_SECRET: local-dev-change-me-use-bin2hex-random-bytes-32
+      ASAAS_BASE_URL: https://api-sandbox.asaas.com/v3
+      ASAAS_API_KEY: ${ASAAS_API_KEY:-}
+      ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN:-}
+      NOMINATIM_URL: https://nominatim.openstreetmap.org
+      NOMINATIM_UA: LevaJa/1.0 (dev@localhost)
+    volumes:
+      - ./backend:/var/www/html
+    command: ["sh", "-c", "while true; do php /var/www/html/bin/tick.php --loop; done"]
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+volumes:
+  levaja_mysql:

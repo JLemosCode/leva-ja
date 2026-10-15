@@ -1,0 +1,21 @@
+# deps / build
+node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# secrets
+backend/.env
+.env
+.env.local
+
+# Hostinger package output
+dist/
+release/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
